@@ -39,8 +39,8 @@ def send_discord_notification(message):
 # 1. ログイン情報
 LOGIN_URL = "https://dailycheck.tc-extsys.jp/tcrappsweb/web/login/tawLogin.html"
 USER_ID_1 = "0030"
-USER_ID_2 = "928091"
-PASSWORD = "Ccj-222229"
+USER_ID_2 = "927583"
+PASSWORD = "Ccj-322222"
 
 # 2. シート設定
 PRODUCTION_SHEET_URL = "https://docs.google.com/spreadsheets/d/1LQwnhCgHZByC-JryFSW2xfQMMG08gvLrboXPCJyvVN0/edit"
@@ -212,16 +212,21 @@ try:
         soup_detail = BeautifulSoup(driver.page_source, "lxml")
         timetable_detail = soup_detail.find("div", class_="timetable-contents").find("table")
         detail_cells = timetable_detail.find_all("td")
-        second_72h = []
+        second_72h_raw = []
         for cell in detail_cells:
             cls = cell.get("class", [])
             if any(x in cls for x in ["vacant", "full", "impossible", "others"]):
                 symbol = "○" if "vacant" in cls else ("s" if "impossible" in cls else "×")
                 colspan = int(cell.get("colspan", 1))
-                second_72h.extend([symbol] * colspan)
+                second_72h_raw.extend([symbol] * colspan)
+
+        # 後半テーブルはプルダウン指定日(now+3日)の0:00始まり
+        # 前半は実行時刻(hour:00)始まりなので、その時間分(hour×4スロット)をスキップして接続
+        overlap_slots = now_jst.hour * 4  # 1時間=4スロット
+        second_72h = second_72h_raw[overlap_slots:overlap_slots + 288]
 
         if len(second_72h) != 288:
-            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288")
+            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288 (raw={len(second_72h_raw)}, skip={overlap_slots})")
 
         full_rsv = "".join(first_72h) + "".join(second_72h)
         if len(full_rsv) != 576:
