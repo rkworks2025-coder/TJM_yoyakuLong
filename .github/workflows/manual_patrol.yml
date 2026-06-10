@@ -2,11 +2,16 @@ name: Manual Patrol Check
 
 on:
   workflow_dispatch:
+    inputs:
+      target_area:
+        description: 'Target area'
+        required: false
+        default: '144h'
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
