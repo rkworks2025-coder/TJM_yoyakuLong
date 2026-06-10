@@ -228,14 +228,12 @@ try:
                 colspan = int(cell.get("colspan", 1))
                 second_72h.extend([symbol] * colspan)
 
-        second_72h = second_72h[4:]  # 先頭1時間分をスキップして前半と接続
-
-        if len(second_72h) != 284:
-            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/284")
+        if len(second_72h) != 288:
+            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288")
 
         full_rsv = "".join(first_72h) + "".join(second_72h)
-        if len(full_rsv) != 572:
-            raise ValueError(f"【不整合】最終結合データ不備: {len(full_rsv)}/572")
+        if len(full_rsv) != 576:
+            raise ValueError(f"【不整合】最終結合データ不備: {len(full_rsv)}/576")
 
         collected_data.append([area, station_name, target_plate, model, start_time_str, full_rsv])
         print(f"    -> {target_plate} 144h取得完了")
