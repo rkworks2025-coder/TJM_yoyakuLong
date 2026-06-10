@@ -173,7 +173,7 @@ try:
                 break
         
         now_jst = datetime.now(timezone(timedelta(hours=+9), 'JST'))
-        start_time_str = f"{now_jst.strftime('%Y-%m-%d')} {now_jst.hour:02d}:00"
+        start_time_str = f"{now_jst.strftime('%Y-%m-%d')} 00:00"
 
         first_72h = []
         timetable = target_box.find("table", class_="timetable")
@@ -195,7 +195,7 @@ try:
         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "loading-view")))
         wait.until(EC.presence_of_element_located((By.ID, "reserveStartDate")))
         
-        target_date_val = (now_jst + timedelta(days=4)).strftime('%Y-%m-%d')
+        target_date_val = (now_jst + timedelta(days=3)).strftime('%Y-%m-%d')
         date_select_element = driver.find_element(By.ID, "reserveStartDate")
         
         # ★修正: プルダウン(select)要素として正確に選択する
@@ -212,22 +212,16 @@ try:
         soup_detail = BeautifulSoup(driver.page_source, "lxml")
         timetable_detail = soup_detail.find("div", class_="timetable-contents").find("table")
         detail_cells = timetable_detail.find_all("td")
-        second_72h_raw = []
+        second_72h = []
         for cell in detail_cells:
             cls = cell.get("class", [])
             if any(x in cls for x in ["vacant", "full", "impossible", "others"]):
                 symbol = "○" if "vacant" in cls else ("s" if "impossible" in cls else "×")
                 colspan = int(cell.get("colspan", 1))
-                second_72h_raw.extend([symbol] * colspan)
-
-        # days=4の0:00始まりから、前半終端(now+3日 hour:00)までのスロット数をスキップ
-        # days=4の0:00 → now+4日0:00、前半終端 → now+3日hour:00
-        # スキップ = 24時間 - 実行時間 = (24 - hour) * 4スロット
-        skip_slots = (24 - now_jst.hour) * 4
-        second_72h = second_72h_raw[skip_slots:skip_slots + 288]
+                second_72h.extend([symbol] * colspan)
 
         if len(second_72h) != 288:
-            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288 (raw={len(second_72h_raw)}, skip={skip_slots})")
+            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288")
 
         full_rsv = "".join(first_72h) + "".join(second_72h)
         if len(full_rsv) != 576:
