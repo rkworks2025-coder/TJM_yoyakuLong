@@ -173,7 +173,7 @@ try:
                 break
         
         now_jst = datetime.now(timezone(timedelta(hours=+9), 'JST'))
-        start_time_str = f"{now_jst.strftime('%Y-%m-%d')} 00:00"
+        start_time_str = f"{now_jst.strftime('%Y-%m-%d')} {now_jst.hour:02d}:00"
 
         first_72h = []
         timetable = target_box.find("table", class_="timetable")
@@ -212,6 +212,14 @@ try:
         soup_detail = BeautifulSoup(driver.page_source, "lxml")
         timetable_detail = soup_detail.find("div", class_="timetable-contents").find("table")
         detail_cells = timetable_detail.find_all("td")
+
+        # デバッグ: 後半テーブルの先頭th(時刻ラベル)を出力して開始時刻を確認
+        th_cells = timetable_detail.find_all("th")
+        print(f"    [DEBUG] 後半テーブル先頭th: {[th.get_text(strip=True) for th in th_cells[:6]]}")
+        first_td = next((c for c in detail_cells if any(x in c.get("class",[]) for x in ["vacant","full","impossible","others"])), None)
+        print(f"    [DEBUG] 後半先頭tdクラス: {first_td.get('class') if first_td else 'None'}, data-time: {first_td.get('data-time','なし') if first_td else 'None'}")
+        print(f"    [DEBUG] 前半終端予定時刻: {(now_jst.replace(minute=0,second=0,microsecond=0) + timedelta(hours=72)).strftime('%Y-%m-%d %H:00')}")
+
         second_72h = []
         for cell in detail_cells:
             cls = cell.get("class", [])
@@ -220,12 +228,14 @@ try:
                 colspan = int(cell.get("colspan", 1))
                 second_72h.extend([symbol] * colspan)
 
-        if len(second_72h) != 288:
-            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288")
+        second_72h = second_72h[4:]  # 先頭1時間分をスキップして前半と接続
+
+        if len(second_72h) != 284:
+            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/284")
 
         full_rsv = "".join(first_72h) + "".join(second_72h)
-        if len(full_rsv) != 576:
-            raise ValueError(f"【不整合】最終結合データ不備: {len(full_rsv)}/576")
+        if len(full_rsv) != 572:
+            raise ValueError(f"【不整合】最終結合データ不備: {len(full_rsv)}/572")
 
         collected_data.append([area, station_name, target_plate, model, start_time_str, full_rsv])
         print(f"    -> {target_plate} 144h取得完了")
