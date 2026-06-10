@@ -1,1 +1,29 @@
-a
+name: Manual Patrol Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Patrol Script
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          echo "$GCP_SA_KEY" > service_account.json
+          python main.py
