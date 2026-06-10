@@ -39,8 +39,8 @@ def send_discord_notification(message):
 # 1. ログイン情報
 LOGIN_URL = "https://dailycheck.tc-extsys.jp/tcrappsweb/web/login/tawLogin.html"
 USER_ID_1 = "0030"
-USER_ID_2 = "928091"
-PASSWORD = "Ccj-222229"
+USER_ID_2 = "927583"
+PASSWORD = "Ccj-322222"
 
 # 2. シート設定
 PRODUCTION_SHEET_URL = "https://docs.google.com/spreadsheets/d/1LQwnhCgHZByC-JryFSW2xfQMMG08gvLrboXPCJyvVN0/edit"
@@ -195,7 +195,7 @@ try:
         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "loading-view")))
         wait.until(EC.presence_of_element_located((By.ID, "reserveStartDate")))
         
-        target_date_val = (now_jst + timedelta(days=3)).strftime('%Y-%m-%d')
+        target_date_val = (now_jst + timedelta(days=4)).strftime('%Y-%m-%d')
         date_select_element = driver.find_element(By.ID, "reserveStartDate")
         
         # ★修正: プルダウン(select)要素として正確に選択する
@@ -220,13 +220,14 @@ try:
                 colspan = int(cell.get("colspan", 1))
                 second_72h_raw.extend([symbol] * colspan)
 
-        # 後半テーブルはプルダウン指定日(now+3日)の0:00始まり
-        # 前半は実行時刻(hour:00)始まりなので、その時間分(hour×4スロット)をスキップして接続
-        overlap_slots = now_jst.hour * 4  # 1時間=4スロット
-        second_72h = second_72h_raw[overlap_slots:overlap_slots + 288]
+        # days=4の0:00始まりから、前半終端(now+3日 hour:00)までのスロット数をスキップ
+        # days=4の0:00 → now+4日0:00、前半終端 → now+3日hour:00
+        # スキップ = 24時間 - 実行時間 = (24 - hour) * 4スロット
+        skip_slots = (24 - now_jst.hour) * 4
+        second_72h = second_72h_raw[skip_slots:skip_slots + 288]
 
         if len(second_72h) != 288:
-            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288 (raw={len(second_72h_raw)}, skip={overlap_slots})")
+            raise ValueError(f"【不整合】{target_plate} 後半データ不足: {len(second_72h)}/288 (raw={len(second_72h_raw)}, skip={skip_slots})")
 
         full_rsv = "".join(first_72h) + "".join(second_72h)
         if len(full_rsv) != 576:
